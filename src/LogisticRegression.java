@@ -61,13 +61,27 @@ public class LogisticRegression {
 		
 		System.out.println("after classifying " + instances.firstInstance());
 		
-		int count = 0;
+		int truePos = 0;
+		int falseNeg = 0;
+		int trueNeg = 0;
+		int falsePos = 0;
+		
 		Iterator<Instance> iter = instances.iterator();
 		while (iter.hasNext()) {
 			try {
-				double val = logistic.classifyInstance(iter.next());
-				if (val == 1.0) {
-					count++;
+				Instance thisInst = iter.next();
+				double val = logistic.classifyInstance(thisInst);
+				
+				Attribute actualAttr = thisInst.attribute(instances.numAttributes() - 11);
+				double actualVal = thisInst.value(actualAttr);
+				if (val == 1.0 && actualVal == 1.0) {
+					truePos++;
+				} else if (val == 1.0 && actualVal == 0.0) {
+					falseNeg++;
+				} else if (val == 0.0 && actualVal == 0.0) {
+					trueNeg++;
+				} else {
+					falsePos++;
 				}
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -75,6 +89,7 @@ public class LogisticRegression {
 			}
 		}
 		
-		System.out.println(count + " out of " + instances.numInstances() + " default");
+		System.out.println("correct ones : " + truePos + " correct zeros : " + trueNeg + 
+				" false pos : " + falseNeg + " false neg : " + falsePos);
 	}
 }
