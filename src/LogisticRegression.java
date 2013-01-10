@@ -33,6 +33,7 @@ public class LogisticRegression {
 
 		System.out.println(instances.firstInstance());
 
+		// Discretise the continuous attributes
 		Discretize discreteFilter = new Discretize();
 		try {
 			discreteFilter.setInputFormat(instances);
@@ -40,13 +41,6 @@ public class LogisticRegression {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-
-		int numAttrs = instances.numAttributes();
-
-		for (int i = 1; i < numAttrs; i++) {
-			Attribute thisAttr = instances.attribute(i);
-		}
-
 
 		try {
 			Filter.useFilter(instances, discreteFilter);
