@@ -31,8 +31,6 @@ public class LogisticRegression {
 		// Set the class index as the "SeriousDlqin2yrs" attribute
 		instances.setClassIndex(instances.numAttributes() - 11);
 
-		System.out.println(instances.firstInstance());
-
 		// Discretise the continuous attributes
 		Discretize discreteFilter = new Discretize();
 		try {
@@ -42,37 +40,38 @@ public class LogisticRegression {
 			e1.printStackTrace();
 		}
 
+		Instances filteredInstances = null;
 		try {
-			Filter.useFilter(instances, discreteFilter);
+			filteredInstances = Filter.useFilter(instances, discreteFilter);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-		System.out.println("after filtering " + instances.firstInstance());
+		System.out.println("finished filtering");
 		
 		SimpleLogistic logistic = new SimpleLogistic();
 		try {
-			logistic.buildClassifier(instances);
+			logistic.buildClassifier(filteredInstances);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		System.out.println("after classifying " + instances.firstInstance());
+		System.out.println("built the classifier");
 		
 		int truePos = 0;
 		int falseNeg = 0;
 		int trueNeg = 0;
 		int falsePos = 0;
 		
-		Iterator<Instance> iter = instances.iterator();
+		Iterator<Instance> iter = filteredInstances.iterator();
 		while (iter.hasNext()) {
 			try {
 				Instance thisInst = iter.next();
 				double val = logistic.classifyInstance(thisInst);
 				
-				Attribute actualAttr = thisInst.attribute(instances.numAttributes() - 11);
+				Attribute actualAttr = thisInst.attribute(filteredInstances.numAttributes() - 11);
 				double actualVal = thisInst.value(actualAttr);
 				if (val == 1.0 && actualVal == 1.0) {
 					truePos++;
