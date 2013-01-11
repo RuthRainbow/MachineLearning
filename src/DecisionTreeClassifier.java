@@ -1,5 +1,3 @@
-package cs342;
-
 import java.io.File;
 import java.util.Random;
 
@@ -18,7 +16,7 @@ public class DecisionTreeClassifier {
 		Instances testData = null;
 		try {
 			ArffLoader loader = new ArffLoader();
-			loader.setSource(new File("credit1.arff"));
+			loader.setSource(new File("Data.arff"));
 			creditData = loader.getDataSet();
 			ArffLoader testLoader = new ArffLoader();
 			testLoader.setSource(new File("testdata.arff"));
