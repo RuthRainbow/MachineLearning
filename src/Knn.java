@@ -1,19 +1,28 @@
+import java.util.Iterator;
 
+import weka.core.Attribute;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SelectedTag;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
-import weka.filters.supervised.instance.SMOTE;
+import weka.filters.supervised.attribute.Discretize;
+import weka.filters.supervised.instance.Resample;
 import weka.filters.unsupervised.instance.Randomize;
+import weka.filters.unsupervised.instance.RemoveFolds;
+import weka.filters.unsupervised.instance.RemovePercentage;
+import weka.filters.unsupervised.instance.RemoveRange;
+import weka.classifiers.CostMatrix;
 import weka.classifiers.Evaluation;
 import weka.classifiers.lazy.IBk;
+import weka.classifiers.meta.MetaCost;
 
 //Not yet producing the correct results... I'm looking into it.
 public class Knn
 {
 	public static void main(String[] args) {
 		final int k = 15;
-		final double samplePercent = 1.0;
+		final double samplePercent = 50.0;
 		final int folds = 10;
 		final int seed = 827634;
 
@@ -38,16 +47,15 @@ public class Knn
 
 		// Set the class index as the "SeriousDlqin2yrs" attribute
 		instances.setClassIndex(0);
-		System.out.println("Smoting small...");
-		SMOTE sample = new SMOTE();
-		Instances sampledInstances = null;
+
+		Resample resample = new Resample();
+		Instances resampledInstances = null;
 		try
 		{
-			sample.setInputFormat(instances);
-			//sample.setClassValue("0");
-			sample.setPercentage(samplePercent);
-			sample.setRandomSeed(seed);
-			sampledInstances = Filter.useFilter(instances, sample);
+			resample.setInputFormat(instances);
+			resample.setBiasToUniformClass(0.5);
+			resample.setSampleSizePercent(samplePercent);
+			resampledInstances = Filter.useFilter(instances, resample);
 		}
 		catch (Exception e1)
 		{
@@ -63,8 +71,8 @@ public class Knn
 		
 		try
 		{
-			randomize.setInputFormat(sampledInstances);
-			randomizedInstances = Filter.useFilter(sampledInstances, randomize);
+			randomize.setInputFormat(resampledInstances);
+			randomizedInstances = Filter.useFilter(resampledInstances, randomize);
 		}
 		catch (Exception e2)
 		{
@@ -93,7 +101,25 @@ public class Knn
 				System.err.println("Could not build IBk Classifier for fold "+i+".");
 				System.exit(-1);
 			}
-			System.out.println("Built the classifier with "+ibk.getNumTraining()+" training instances.");
+			System.out.println("Built the ibk classifier with "+ibk.getNumTraining()+" training instances.");
+			
+			CostMatrix costMatrix = new CostMatrix(2);
+			costMatrix.setElement(0, 0, 0);
+			costMatrix.setElement(0, 1, 1);
+			costMatrix.setElement(1, 0, 8);
+			costMatrix.setElement(1, 1, 0);
+			
+			MetaCost metacost = new MetaCost();
+			metacost.setCostMatrix(costMatrix);
+			metacost.setClassifier(ibk);
+			try
+			{metacost.buildClassifier(trainingInstances);}
+			catch (Exception e1)
+			{
+				System.err.println("Could not build MetaCost Classifier for fold "+i+".");
+				System.exit(-1);
+			}
+			System.out.println("Built the metacost classifier from ibk.");
 
 			System.out.println("Evaluating "+testInstances.numInstances()+" instances.");
 			Evaluation evaluation = null;
