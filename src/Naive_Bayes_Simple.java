@@ -1,64 +1,53 @@
 import java.util.Random;
-
+import weka.core.Attribute;
+import weka.core.Instance;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
 import weka.filters.supervised.attribute.Discretize;
 import weka.core.Instances;
 import weka.classifiers.bayes.NaiveBayesSimple;
-import weka.classifiers.Evaluation;
 import weka.filters.supervised.instance.Resample;
+import weka.filters.supervised.instance.SMOTE;
+import weka.classifiers.meta.AdaBoostM1;
+import weka.classifiers.CostMatrix;
+import weka.classifiers.meta.MetaCost;
+import weka.classifiers.Evaluation;
+
 
 public class Naive_Bayes_Simple {
 	public static void main(String[] args) {
-		DataSource source = null;
+		
+		// Analyse arguments for input data
+		int argsLength = args.length;
+		if (argsLength < 2) {
+			System.out.println("Please specific a training data file and a test data file");
+			System.exit(0);
+		}
+		String testFilename = args[1];
+		String trainingFilename = args[0];
+		
+		// Gather the instances from the data files
+		Instances data = readInstances(trainingFilename);
+		Instances testData = readInstances(testFilename);
+		
+		// Create a SMOTE instance
+		SMOTE smoter = new SMOTE();
 		try {
-			source = new DataSource("./credit1.arff");
+			smoter.setNearestNeighbors(2);
+			smoter.setPercentage(100);
 		} catch (Exception e) {
-			System.out.println("Could not load datasource");
+			System.out.println("Cannot create smote");
 		}
-		
-		Instances data = null;
-		try {
-			data = source.getDataSet();
-		} catch (Exception e) {
-			System.out.println("Instances could not be loaded.");
-		}
-		
-		// Set the class index as the "SeriousDlqin2yrs" attribute
-		data.setClassIndex(0);
-		
-		String[] options = new String[2];
-		options[0] = "-B";
-		options[1] ="1";
-		Resample resampler = new Resample();
-		try {
-			resampler.setOptions(options);
-		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		
-		try {
-			resampler.setInputFormat(data);
-			data = Filter.useFilter(data, resampler);
-		} catch (Exception e) {
-			
-		}
-		
-		// Discretize any continuous variables
-		Discretize discretizeFilter = new Discretize();
-		try {
-			discretizeFilter.setInputFormat(data);
-			data = Filter.useFilter(data, discretizeFilter);
-		} catch (Exception e) {
-			System.out.println("Could not set input format of discretize filter.");
-		}
-		
-		
-		
 
-		// Build a naive bayes classifer for the data
+		// Run the training data through the SMOTE filter
+		try {
+			smoter.setInputFormat(data);
+			data = Filter.useFilter(data, smoter);			
+		} catch (Exception e) {
+			System.out.println("Cannot apply smote");
+		}	
 		
+		// Build a naive bayes classifier for the data
 		NaiveBayesSimple simpleNaiveBayes = new NaiveBayesSimple();
 		try {
 			simpleNaiveBayes.buildClassifier(data);
@@ -66,17 +55,61 @@ public class Naive_Bayes_Simple {
 			System.out.println("Cannot build classifer");
 		}
 		
-		// Print out the results
-		Evaluation evaluation = null;
+		// Build cost matrix
+		CostMatrix costMatrix = new CostMatrix(2);
+		costMatrix.setElement(0, 0, 0);
+		costMatrix.setElement(0, 1, 1);
+		costMatrix.setElement(1, 0, 11);
+		costMatrix.setElement(1, 1, 0);
+
+		// Instantiate the MetaCost classifier and set the base classifier as the Simple Naive Bayes classifer
+		MetaCost metaCost = new MetaCost();
+		metaCost.setClassifier(simpleNaiveBayes);
+		metaCost.setCostMatrix(costMatrix);
+		
+		// Build the MetaCost classifier
 		try {
-			evaluation = new Evaluation(data);
-			evaluation.evaluateModel(simpleNaiveBayes, data);
-			System.out.println(evaluation.toSummaryString());
-			System.out.println(evaluation.toMatrixString());
-		} catch (Exception e) {
-			System.out.println("Error outputting evaluation");
+			metaCost.buildClassifier(data);
+		} catch (Exception e1) {
+			e1.printStackTrace();
 		}
 		
+		// evaluate classifier and print some statistics
+		Evaluation eval;
+		try {
+			eval = new Evaluation(data);
+			eval.evaluateModel(simpleNaiveBayes, testData);
+			System.out.println(eval.toSummaryString("\nResults\n\n", false));
+			System.out.println(eval.toClassDetailsString());
+			System.out.println(eval.toMatrixString());
+		} catch (Exception e) {
+			System.out.println("Cannot evaluate classifier");
+		}
 
+	}
+	
+	private static Instances readInstances(String file) {
+		// Instantiate a datasource
+		DataSource source = null;
+		try {
+			source = new DataSource(file + ".arff");
+		} catch (Exception e) {
+			System.out.println("could not find file");
+			e.printStackTrace();
+		}
+
+		// Gather the instances
+		Instances instances = null;
+		try {
+			instances = source.getDataSet();
+		} catch (Exception e) {
+			System.out.println("error getting data set from source");
+			e.printStackTrace();
+		}
+
+		// Set the class index as the "SeriousDlqin2yrs" attribute
+		instances.setClassIndex(0);
+
+		return instances;
 	}
 }
