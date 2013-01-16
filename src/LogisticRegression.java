@@ -12,6 +12,7 @@ public class LogisticRegression {
 
 	public static void main(String[] args) {
 		
+		// Read in the test and training data filepaths from the command line
 		int argsLength = args.length;
 		if (argsLength < 2) {
 			System.out.println("Please specific a training data file and a test data file");
@@ -20,11 +21,10 @@ public class LogisticRegression {
 		String testFilename = args[1];
 		String trainingFilename = args[0];
 		
-
 		Instances trainingInstances = readInstances(trainingFilename);
 		Instances testInstances = readInstances(testFilename);
 
-		// Discretise the continuous attributes
+		// Discretise the continuous attributes for both data sets
 		Discretize discreteFilter = new Discretize();
 		try {
 			discreteFilter.setInputFormat(trainingInstances);
@@ -35,6 +35,7 @@ public class LogisticRegression {
 			e.printStackTrace();
 		}
 		
+		// Apply SMOTE to the training data for over-sampling
 		SMOTE smote = new SMOTE();
 		try {
 			smote.setInputFormat(trainingInstances);
@@ -44,16 +45,19 @@ public class LogisticRegression {
 			e.printStackTrace();
 		}
 
-		System.out.println("finished filtering");
+		System.out.println("Finished filtering");
 
+		// Create the logistic regression classifier
 		Logistic logistic = new Logistic();
 		
+		// Initialise the cost matrix with the values found
 		CostMatrix costMatrix = new CostMatrix(2);
 		costMatrix.setElement(0, 0, 0);
 		costMatrix.setElement(0, 1, 1);
 		costMatrix.setElement(1, 0, 5);
 		costMatrix.setElement(1, 1, 0);
 		
+		// Build the MetaCost classifier using the Logistic classifier and the cost matrix defined above
 		MetaCost metaCost = new MetaCost();
 		metaCost.setClassifier(logistic);
 		metaCost.setCostMatrix(costMatrix);
@@ -63,10 +67,8 @@ public class LogisticRegression {
 			System.out.println("Error building the MetaCost classifier");
 			e1.printStackTrace();
 		}
-
-		System.out.println("built the classifier");
 		
-		// Print out the results
+		// Evaluate the model using the test data and print out the results
 		Evaluation evaluation = null;
 		try {
 			evaluation = new Evaluation(trainingInstances);
@@ -79,6 +81,7 @@ public class LogisticRegression {
 		}
 	}
 	
+	// Read instances from the given file name and return these
 	private static Instances readInstances(String file) {
 		DataSource source = null;
 		try {
