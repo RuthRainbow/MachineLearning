@@ -1,28 +1,29 @@
-import java.util.Iterator;
 
-import weka.core.Attribute;
-import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.SelectedTag;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
-import weka.filters.supervised.attribute.Discretize;
-import weka.filters.supervised.instance.Resample;
+import weka.filters.supervised.instance.SMOTE;
+import weka.filters.unsupervised.instance.Randomize;
+import weka.classifiers.Evaluation;
 import weka.classifiers.lazy.IBk;
 
 //Not yet producing the correct results... I'm looking into it.
 public class Knn
 {
 	public static void main(String[] args) {
-		final int k = 1;
-		final double samplePercent = 100.0;
+		final int k = 15;
+		final double samplePercent = 1.0;
+		final int folds = 10;
+		final int seed = 827634;
 
 		DataSource source = null;
 		
 		try
-		{source = new DataSource("./credit1.arff");}
+		{source = new DataSource("./testdata.arff");}
 		catch (Exception e)
 		{
-			System.out.println("Could not find file.");
+			System.err.println("Could not find file.");
 			System.exit(-1);
 		}
 
@@ -31,99 +32,81 @@ public class Knn
 		{instances = source.getDataSet();}
 		catch (Exception e)
 		{
-			System.out.println("Could not get dataset from file.");
+			System.err.println("Could not get dataset from file.");
 			System.exit(-1);
 		}
 
 		// Set the class index as the "SeriousDlqin2yrs" attribute
 		instances.setClassIndex(0);
-
-		Discretize discretizeFilter = new Discretize();
-		Instances filteredInstances = null;
-		
-		try {
-			discretizeFilter.setInputFormat(instances);
-			filteredInstances = Filter.useFilter(instances, discretizeFilter);
-		} catch (Exception e) {
-			System.out.println("Could not set input format of discretize filter.");
-		}
-		//filteredInstances = instances;
-
-		Resample resample = new Resample();
-		Instances trainingInstances = null;
+		System.out.println("Smoting small...");
+		SMOTE sample = new SMOTE();
+		Instances sampledInstances = null;
 		try
 		{
-			resample.setInputFormat(instances);
-			resample.setBiasToUniformClass(0.5);
-			resample.setSampleSizePercent(samplePercent);
-			trainingInstances = Filter.useFilter(instances, resample);
+			sample.setInputFormat(instances);
+			//sample.setClassValue("0");
+			sample.setPercentage(samplePercent);
+			sample.setRandomSeed(seed);
+			sampledInstances = Filter.useFilter(instances, sample);
 		}
 		catch (Exception e1)
 		{
-			System.out.println("Could not resample instances for training.");
+			System.err.println("Could not resample instances for training.");
 			System.exit(-1);
-		}
-
-		IBk ibk = new IBk();
-		ibk.setKNN(k);
+		}		
+		
+		
+		Randomize randomize = new Randomize();
+		Instances randomizedInstances = null;
+		
+		randomize.setRandomSeed(seed);
+		
 		try
-		{ibk.buildClassifier(trainingInstances);}
-		catch (Exception e)
 		{
-			System.out.println("Could not build IBk Classifier.");
+			randomize.setInputFormat(sampledInstances);
+			randomizedInstances = Filter.useFilter(sampledInstances, randomize);
+		}
+		catch (Exception e2)
+		{
+			System.err.println("Could not randomize data.");
 			System.exit(-1);
 		}
+		
 
-		System.out.println("Built the classifier with "+(ibk.getNumTraining())+" training instances.");
+		Instances trainingInstances = null;
+		Instances testInstances = null;
+		for(int i = 1; i < folds; i++)
+		{
 
-		int truePos = 0;
-		int falseNeg = 0;
-		int trueNeg = 0;
-		int falsePos = 0;
-
-		System.out.print("Progress: 0%");
-		Iterator<Instance> iter = filteredInstances.iterator();
-		int total = filteredInstances.size();
-		int count = 0;
-		int last = 0;
-		while (iter.hasNext()) {
-			try {
-				Instance thisInst = iter.next();
-				double val = ibk.classifyInstance(thisInst);
-
-				Attribute actualAttr = thisInst.attribute(0);
-				double actualVal = thisInst.value(actualAttr);
-				if(val == actualVal)
-				{
-					if(actualVal == 1.0)
-					{truePos++;}
-					else
-					{trueNeg++;}
-				}
-				else
-				{
-					if(actualVal == 1.0)
-					{falsePos++;}
-					else
-					{falseNeg++;}
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			count++;
-			if(Math.floor((100*count)/total) != last)
+			trainingInstances = randomizedInstances.trainCV(folds, i-1);
+			testInstances = randomizedInstances.testCV(folds, i-1);
+			
+			System.out.println("Fold "+i+" of "+folds+": ");
+			
+			IBk ibk = new IBk();
+			ibk.setKNN(k);
+			ibk.setDistanceWeighting(new SelectedTag(IBk.WEIGHT_INVERSE, IBk.TAGS_WEIGHTING));
+			try
+			{ibk.buildClassifier(trainingInstances);}
+			catch (Exception e)
 			{
-				last = (int)Math.floor((100*count)/total);
-				System.out.print("\rProgress: "+last+"%");
+				System.err.println("Could not build IBk Classifier for fold "+i+".");
+				System.exit(-1);
 			}
-		}
-		System.out.println();
+			System.out.println("Built the classifier with "+ibk.getNumTraining()+" training instances.");
 
-		System.out.println("True Positive: " + truePos + " (" + Math.round((100.0*truePos)/(truePos+falseNeg)) +"%)");
-		System.out.println("True Negative: " + trueNeg + " (" + Math.round((100.0*trueNeg)/(trueNeg+falsePos)) +"%)");
-		System.out.println("False Positive: " + falseNeg + " (" + Math.round((100.0*falseNeg)/(truePos+falseNeg)) +"%)");
-		System.out.println("False Negative: " + falsePos + " (" + Math.round((100.0*falsePos)/(trueNeg+falsePos)) +"%)");
-		System.out.println("Total Classifications: "+ count);
+			System.out.println("Evaluating "+testInstances.numInstances()+" instances.");
+			Evaluation evaluation = null;
+			try
+			{
+				evaluation = new Evaluation(testInstances);
+				evaluation.evaluateModel(ibk, testInstances);
+				System.out.println(evaluation.toSummaryString());
+				System.out.println(evaluation.toMatrixString());
+				System.out.println(evaluation.toClassDetailsString());
+			}
+			catch (Exception e)
+			{System.err.println("Error outputting evaluation for fold "+i+".");}
+		}
 	}
 }
