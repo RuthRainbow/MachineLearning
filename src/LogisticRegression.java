@@ -13,15 +13,16 @@ public class LogisticRegression {
 	public static void main(String[] args) {
 		
 		int argsLength = args.length;
-		
-		if (argsLength < 1) {
-			System.out.println("Please specific a test data file");
+		if (argsLength < 2) {
+			System.out.println("Please specific a training data file and a test data file");
 			System.exit(0);
 		}
-		String filename = args[0];
+		String testFilename = args[1];
+		String trainingFilename = args[0];
+		
 
-		Instances trainingInstances = readInstances("trainingdata");
-		Instances testInstances = readInstances(filename);
+		Instances trainingInstances = readInstances(trainingFilename);
+		Instances testInstances = readInstances(testFilename);
 
 		// Discretise the continuous attributes
 		Discretize discreteFilter = new Discretize();
@@ -50,7 +51,7 @@ public class LogisticRegression {
 		CostMatrix costMatrix = new CostMatrix(2);
 		costMatrix.setElement(0, 0, 0);
 		costMatrix.setElement(0, 1, 1);
-		costMatrix.setElement(1, 0, 15);
+		costMatrix.setElement(1, 0, 5);
 		costMatrix.setElement(1, 1, 0);
 		
 		MetaCost metaCost = new MetaCost();
@@ -71,8 +72,8 @@ public class LogisticRegression {
 			evaluation = new Evaluation(trainingInstances);
 			evaluation.evaluateModel(metaCost, testInstances);
 			System.out.println(evaluation.toSummaryString());
-			System.out.println(evaluation.toMatrixString());
 			System.out.println(evaluation.toClassDetailsString());
+			System.out.println(evaluation.toMatrixString());
 		} catch (Exception e) {
 			System.out.println("Error outputting evaluation");
 		}
