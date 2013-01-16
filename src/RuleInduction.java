@@ -1,32 +1,37 @@
-import weka.core.Attribute;
-import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
 import weka.filters.supervised.attribute.Discretize;
+import weka.filters.supervised.instance.SMOTE;
 import weka.filters.unsupervised.attribute.ReplaceMissingValues;
+import weka.classifiers.CostMatrix;
+import weka.classifiers.Evaluation;
+import weka.classifiers.meta.MetaCost;
 import weka.classifiers.rules.Prism;
-import weka.filters.supervised.instance.Resample;
 
 public class RuleInduction {
 
-  public static void main(String[] args) {
+	public static void main(String[] args) {
 		
-		//String test = args[0];
-		String test = "testData.arff";
+		String train = args[0];
+		String test = args[1];
 		
 		DataSource testData = null;
 		DataSource source = null;
+		
+		// Set the data sources to the user supplied training and test data
 		try {
-			source = new DataSource("credit1.arff");
+			source = new DataSource(train);
 			testData = new DataSource(test);
 		} catch (Exception e) {
 			System.out.println("could not find file");
 			e.printStackTrace();
 		}
 
+		// Get the instances from the supplied data sources
 		Instances instances = null;
 		Instances testInstances = null;
+		
 		try {
 			instances = source.getDataSet();
 			testInstances = testData.getDataSet();
@@ -38,10 +43,8 @@ public class RuleInduction {
 		// Set the class index as the "SeriousDlqin2yrs" attribute
 		instances.setClassIndex(0);
 		testInstances.setClassIndex(0);
-
-		System.out.println(testInstances.instance(2));
 		
-		// Replace the missing values
+		// Replace the missing values in the training and test data with means
 		ReplaceMissingValues replaceFilter = new ReplaceMissingValues();
 		try {
 			replaceFilter.setInputFormat(instances);
@@ -57,24 +60,8 @@ public class RuleInduction {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		Resample resample = new Resample();
-		try {
-			resample.setBiasToUniformClass(0.5);
-			resample.setInputFormat(instances);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
-		try {
-			instances = Filter.useFilter(instances, resample);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		// Discretise the continuous attributes
+		// Discretise the continuous attributes in the training and test data
 		Discretize discreteFilter = new Discretize();
 		try {
 			discreteFilter.setInputFormat(instances);
@@ -82,7 +69,7 @@ public class RuleInduction {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-
+		
 		try {
 			instances = Filter.useFilter(instances, discreteFilter);
 			testInstances = Filter.useFilter(testInstances, discreteFilter);
@@ -91,46 +78,53 @@ public class RuleInduction {
 			e.printStackTrace();
 		}
 		
-		System.out.println("after discretize: " + testInstances.instance(0));
-		System.out.println(instances.instance(0));
-
-		Prism prism = new Prism();
+		// Use SMOTE to resample the training data
+		SMOTE smote = new SMOTE();
 		try {
-			prism.buildClassifier(instances);
+			smote.setInputFormat(instances);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-		int truePos = 0;
-		int falseNeg = 0;
-		int trueNeg = 0;
-		int falsePos = 0;
-
-		int numInstances = testInstances.numInstances();
-		for (int i = 0; i < numInstances; i++) {
-			try {
-				Instance thisInst = testInstances.instance(i);
-				double val = prism.classifyInstance(thisInst);
-
-				Attribute actualAttr = thisInst.attribute(0);
-				double actualVal = thisInst.value(actualAttr);
-				if (val == 1.0 && actualVal == 1.0) {
-					trueNeg++;
-				} else if (val == 1.0 && actualVal == 0.0) {
-					falseNeg++;
-				} else if (val == 0.0 && actualVal == 0.0) {
-					truePos++;
-				} else {
-					falsePos++;
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		
+		try {
+			instances = Filter.useFilter(instances, smote);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		
+		// Set up the Prism classifier with a cost matrix
+		Prism prism = new Prism();
+		CostMatrix costMatrix = new CostMatrix(2);
+		
+		costMatrix.setElement(0, 0, 0);
+		costMatrix.setElement(0, 1, 1);
+		costMatrix.setElement(1, 0, 10);
+		costMatrix.setElement(1, 1, 0);
 
-		System.out.println("correct ones : " + trueNeg + " correct zeros : " + truePos +
-				" false pos : " + falsePos + " false neg : " + falseNeg);
+		MetaCost metaCost = new MetaCost();
+		metaCost.setClassifier(prism);
+		metaCost.setCostMatrix(costMatrix);
+		
+		try {
+			metaCost.buildClassifier(instances);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		// Evaluate the test data, printing information about the results
+		Evaluation eval;
+		try {
+			eval = new Evaluation(instances);
+			eval.evaluateModel(metaCost, testInstances);
+			System.out.println(eval.toSummaryString("\nResults\n", false));
+			System.out.println(eval.toMatrixString());
+			System.out.println(eval.toClassDetailsString());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
 	}
 }
