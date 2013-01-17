@@ -1,14 +1,8 @@
-import java.util.Random;
-import weka.core.Attribute;
-import weka.core.Instance;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
-import weka.filters.supervised.attribute.Discretize;
 import weka.core.Instances;
 import weka.classifiers.bayes.NaiveBayesSimple;
-import weka.filters.supervised.instance.Resample;
 import weka.filters.supervised.instance.SMOTE;
-import weka.classifiers.meta.AdaBoostM1;
 import weka.classifiers.CostMatrix;
 import weka.classifiers.meta.MetaCost;
 import weka.classifiers.Evaluation;
@@ -92,7 +86,7 @@ public class Naive_Bayes_Simple {
 		// Instantiate a datasource
 		DataSource source = null;
 		try {
-			source = new DataSource(file + ".arff");
+			source = new DataSource(file);
 		} catch (Exception e) {
 			System.out.println("could not find file");
 			e.printStackTrace();

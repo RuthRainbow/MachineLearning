@@ -65,7 +65,7 @@ public class DecisionTreeClassifier {
         CostMatrix costMatrix = new CostMatrix(2);
         costMatrix.setElement(0, 0, 0);
         costMatrix.setElement(0, 1, 1);
-        costMatrix.setElement(1, 0, 10;
+        costMatrix.setElement(1, 0, 10);
         costMatrix.setElement(1, 1, 0);
 
         MetaCost metaCost = new MetaCost();

@@ -26,7 +26,9 @@ public class KNN
 		String trainingFilename = args[0];
 		
 		Instances trainingInstances = readInstances(trainingFilename);
+		System.out.println("Training data loaded.");
 		Instances testInstances = readInstances(testFilename);
+		System.out.println("Test data loaded.");
 		
 		final int k = 15;
 		
@@ -36,24 +38,27 @@ public class KNN
 		//Prepare to use Discretize and SMOTE
 		Discretize discretize = new Discretize();
 		SMOTE smote = new SMOTE();
-		
+		System.out.print("Filtering training data... ");
 		try
 		{
-			//Apple discretize and then SMOTE to training data
+			//Apply discretize and then SMOTE to training data
 			smote.setInputFormat(trainingInstances);
 			discretize.setInputFormat(trainingInstances);
 			trainingInstances = Filter.useFilter(trainingInstances, discretize);
 			trainingInstances = Filter.useFilter(trainingInstances, smote);
-			//Apple discretize to our test data
+			System.out.print("done.\nFiltering test data...");
+			//Apply discretize to our test data
 			discretize.setInputFormat(testInstances);
 			testInstances = Filter.useFilter(testInstances, discretize);
+			System.out.println(" done.");
 		}
 		catch (Exception e2)
 		{
-			System.err.println("Could not randomize data.");
+			System.err.println("Could not filter data.");
 			System.exit(-1);
 		}
 		
+		System.out.println("Preparing IBk and metaCost...");
 		//Prepare IBk
 		IBk ibk = new IBk();
 		ibk.setKNN(k);
@@ -77,7 +82,8 @@ public class KNN
 			System.err.println("Could not build metaCost Classifier.");
 			System.exit(-1);
 		}
-		System.out.println("Built the metacost classifier from ibk.");
+		
+		System.out.println(" done.\nBuilt the metacost classifier from ibk.");
 
 		System.out.println("Evaluating "+testInstances.numInstances()+" instances.");
 		Evaluation evaluation = null;
@@ -99,7 +105,7 @@ public class KNN
 	private static Instances readInstances(String file) {
 		DataSource source = null;
 		try {
-			source = new DataSource(file + ".arff");
+			source = new DataSource(file);
 		} catch (Exception e) {
 			System.out.println("could not find file");
 			e.printStackTrace();
