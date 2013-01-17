@@ -85,7 +85,7 @@ public class LogisticRegression {
 	private static Instances readInstances(String file) {
 		DataSource source = null;
 		try {
-			source = new DataSource(file + ".arff");
+			source = new DataSource(file);
 		} catch (Exception e) {
 			System.out.println("could not find file");
 			e.printStackTrace();
