@@ -1,5 +1,7 @@
+
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
+import weka.filters.supervised.attribute.Discretize;
 import weka.core.Instances;
 import weka.classifiers.bayes.NaiveBayesSimple;
 import weka.filters.supervised.instance.SMOTE;
@@ -23,6 +25,17 @@ public class Naive_Bayes_Simple {
 		// Gather the instances from the data files
 		Instances data = readInstances(trainingFilename);
 		Instances testData = readInstances(testFilename);
+		
+		// Discretise the continuous attributes for both data sets
+		Discretize discreteFilter = new Discretize();
+		try {
+			discreteFilter.setInputFormat(data);
+			data = Filter.useFilter(data, discreteFilter);
+			testData = Filter.useFilter(testData, discreteFilter);
+		} catch (Exception e) {
+			System.out.println("Error with Discretize");
+			e.printStackTrace();
+		}
 		
 		// Create a SMOTE instance
 		SMOTE smoter = new SMOTE();
@@ -86,7 +99,7 @@ public class Naive_Bayes_Simple {
 		// Instantiate a datasource
 		DataSource source = null;
 		try {
-			source = new DataSource(file);
+			source = new DataSource(file + ".arff");
 		} catch (Exception e) {
 			System.out.println("could not find file");
 			e.printStackTrace();
