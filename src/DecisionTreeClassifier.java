@@ -51,7 +51,7 @@ public class DecisionTreeClassifier {
         } // set options
        
         String[] options = new String[1];
-        options[0] = "-R";
+        options[0] = "-R"; // Turn on reduce error pruning
         J48 tree = new J48(); // new instance of tree
         try {
             tree.setOptions(options); // set the options
