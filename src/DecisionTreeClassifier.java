@@ -11,6 +11,8 @@ import weka.classifiers.Evaluation;
 
 public class DecisionTreeClassifier {
     public static void main(String[] args) {
+        
+        // Set the data sources to the user supplied training and test data
         Instances trainingData = null;
         Instances testData = null;
         try {
@@ -59,10 +61,11 @@ public class DecisionTreeClassifier {
             e.printStackTrace();
         }
        
+        // Set up cost matrix for the classifier
         CostMatrix costMatrix = new CostMatrix(2);
         costMatrix.setElement(0, 0, 0);
         costMatrix.setElement(0, 1, 1);
-        costMatrix.setElement(1, 0, 20);
+        costMatrix.setElement(1, 0, 10;
         costMatrix.setElement(1, 1, 0);
 
         MetaCost metaCost = new MetaCost();
