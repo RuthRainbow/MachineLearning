@@ -11,14 +11,14 @@ import weka.classifiers.Evaluation;
 
 public class DecisionTreeClassifier {
     public static void main(String[] args) {
-        Instances trainingData = args[0];
-        Instances testData = args[1];
+        Instances trainingData = null;
+        Instances testData = null;
         try {
             ArffLoader trainingLoader = new ArffLoader();
-            trainingLoader.setSource(new File(trainingData));
+            trainingLoader.setSource(new File(args[0]));
             trainingData = trainingLoader.getDataSet();
             ArffLoader testLoader = new ArffLoader();
-            testLoader.setSource(new File(testData));
+            testLoader.setSource(new File(args[1]));
             testData = testLoader.getDataSet();
         } catch (Exception e) {
             // TODO Auto-generated catch block
